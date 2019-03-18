@@ -1,0 +1,5 @@
+﻿  CrateApp.cpp
+c:\users\jag14\desktop\com428 assignment\crate\crateapp.cpp(357): warning C4805: '==': unsafe mix of type 'SHORT' and type 'bool' in operation
+c:\users\jag14\desktop\com428 assignment\crate\crateapp.cpp(361): warning C4805: '==': unsafe mix of type 'SHORT' and type 'bool' in operation
+c:\users\jag14\desktop\com428 assignment\crate\crateapp.cpp(364): warning C4805: '==': unsafe mix of type 'SHORT' and type 'bool' in operation
+  Crate.vcxproj -> C:\Users\jag14\Desktop\COM428 Assignment\Crate\x64\Debug\Lab 6 - Textured crate.exe
