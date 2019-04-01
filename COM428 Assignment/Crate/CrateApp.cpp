@@ -122,14 +122,16 @@ private:
 
 	bool mIsWireframe = false;
 	bool RotateCube = false;
+	int cullingMode = 0;
 
 	XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
 	float mTheta = 1.3f*XM_PI;
-	float mPhi = 0.4f*XM_PI;
-	float mRadius = 2.5f;
+	float mPhi = 0.35f*XM_PI;
+	float mRadius = 12.0f;
+
 	float rotation = 0.0f;
 
     POINT mLastMousePos;
@@ -255,6 +257,23 @@ void CrateApp::Draw(const GameTimer& gt)
 	{
 		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
 	}
+
+	/*if (cullingMode == 0)
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["none"].Get()));
+	}
+	else if (cullingMode == 1)
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["front"].Get()));
+	}
+	else if (cullingMode == 2)
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["back"].Get()));
+	}
+	else
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["none"].Get()));
+	}*/
 	
     //ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mOpaquePSO.Get()));
 
@@ -353,7 +372,26 @@ void CrateApp::OnMouseMove(WPARAM btnState, int x, int y)
  
 void CrateApp::OnKeyboardInput(const GameTimer& gt)
 {
-	//if(GetAsyncKeyState('1') & 0x8000)
+	//Predefined Camera State 1- Front
+	if (GetAsyncKeyState('1') & 0x8000)
+	{
+		mTheta=1.5f*XM_PI;
+		mPhi=0.45f*XM_PI;
+	}
+	//Predefined Camera State 2- Top
+	if (GetAsyncKeyState('2') & 0x8000)
+	{
+		mTheta = 1.5f*XM_PI;
+		mPhi = 2.0f*XM_PI;
+	}
+	//Predefined Camera State 3- Side
+	if (GetAsyncKeyState('3') & 0x8000)
+	{
+		mTheta = 1.0f*XM_PI;
+		mPhi = 0.45f*XM_PI;
+	}
+	//Change WireFrame State 0x57 is W to change to wireframe
+	//						 0x53 is S to change to solid
 	if (GetKeyState(0x57) == true)
 		mIsWireframe = true;
 	else if (GetKeyState(0x57) == false)
@@ -361,9 +399,21 @@ void CrateApp::OnKeyboardInput(const GameTimer& gt)
 	if (GetKeyState(0x53) == true)
 		mIsWireframe = false;
 
-	if (GetKeyState(0x52) == true)
+	//Dummy Code ATM to see if pressing R rotates specified objects in Constant Buffer
+	if (GetKeyState('R'))
 		RotateCube = true;
+	else
+		RotateCube = false;
 
+	//Change Culling Mode State 0x4E = N = None Culling
+	//							0x46 = F = Front Culling
+	//							0x42 = B = Back Culling
+	if (GetKeyState(0x4E))
+		cullingMode = 0;
+	if (GetKeyState(0x46))
+		cullingMode = 1;
+	if (GetKeyState(0x42))
+		cullingMode = 2;
 }
  
 void CrateApp::UpdateCamera(const GameTimer& gt)
@@ -375,11 +425,12 @@ void CrateApp::UpdateCamera(const GameTimer& gt)
 
 	// Build the view matrix.
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
+	XMVECTOR target = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
+
 }
 
 void CrateApp::AnimateMaterials(const GameTimer& gt)
@@ -390,37 +441,15 @@ void CrateApp::AnimateMaterials(const GameTimer& gt)
 void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 {
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
-	for(auto& e : mAllRitems)
+	for (auto& e : mAllRitems)
 	{
 		// Only update the cbuffer data if the constants have changed.  
 		// This needs to be tracked per frame resource.
-		if(e->NumFramesDirty > 0)
+		if (e->NumFramesDirty > 0)
 		{
-			if (RotateCube == true)
-			{
-				if (e->ObjCBIndex == 0 || e->ObjCBIndex == 3 || e->ObjCBIndex == 6 ||
-					e->ObjCBIndex == 9 || e->ObjCBIndex == 12 || e->ObjCBIndex == 15 ||
-					e->ObjCBIndex == 18 || e->ObjCBIndex == 21 || e->ObjCBIndex == 24)
-				{
-					XMMATRIX world = XMLoadFloat4x4(&e->World);
-					XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
-					XMMATRIX rot = XMMatrixRotationY(rotation);
-					world = rot * world;
-					rotation += 0.0009f;
-
-					ObjectConstants objConstants;
-					XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-					XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
-
-					currObjectCB->CopyData(e->ObjCBIndex, objConstants);
-
-					e->NumFramesDirty--;
-				}
-			}
-			
 			XMMATRIX world = XMLoadFloat4x4(&e->World);
 			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
-			
+
 			ObjectConstants objConstants;
 			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
@@ -430,7 +459,31 @@ void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 			// Next FrameResource need to be updated too.
 			e->NumFramesDirty--;
 		}
+		if (RotateCube == true)
+		{
+			if (e->ObjCBIndex == 0 || e->ObjCBIndex == 3 || e->ObjCBIndex == 6 ||
+				e->ObjCBIndex == 9 || e->ObjCBIndex == 12 || e->ObjCBIndex == 15 ||
+				e->ObjCBIndex == 18 || e->ObjCBIndex == 21 || e->ObjCBIndex == 24)
+			{
+				XMMATRIX world = XMLoadFloat4x4(&e->World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
+				rotation += XMConvertToRadians(90);
+				XMMATRIX rot = XMMatrixRotationZ(rotation);
+				world = rot * world;
+
+				ObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+
+				currObjectCB->CopyData(e->ObjCBIndex, objConstants);
+
+				e->NumFramesDirty--;
+				rotation = 0.0f;
+			}
+		}
 	}
+	RotateCube = false;
+
 }
 
 void CrateApp::UpdateMaterialCBs(const GameTimer& gt)
@@ -686,6 +739,7 @@ void CrateApp::BuildPSOs()
 		reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()),
 		mShaders["opaquePS"]->GetBufferSize()
 	};
+
 	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -706,6 +760,25 @@ void CrateApp::BuildPSOs()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframePsoDesc = opaquePsoDesc;
 	opaqueWireframePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaqueWireframePsoDesc, IID_PPV_ARGS(&mPSOs["opaque_wireframe"])));
+
+	//
+	// PSO for Culling Modes
+	//
+	//Culling None
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC noneCullingPsoDesc = opaquePsoDesc;
+	noneCullingPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&noneCullingPsoDesc, IID_PPV_ARGS(&mPSOs["none"])));
+
+	//Culling Front
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC frontCullingPsoDesc = opaquePsoDesc;
+	frontCullingPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&frontCullingPsoDesc, IID_PPV_ARGS(&mPSOs["front"])));
+
+	//Culling Back
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC backCullingPsoDesc = opaquePsoDesc;
+	backCullingPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&backCullingPsoDesc, IID_PPV_ARGS(&mPSOs["back"])));
+
 }
 
 void CrateApp::BuildFrameResources()
