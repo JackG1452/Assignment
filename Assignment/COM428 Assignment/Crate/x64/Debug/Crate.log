@@ -1,11 +1,2 @@
-﻿  Camera.cpp
-  d3dApp.cpp
-  d3dUtil.cpp
-  DDSTextureLoader.cpp
-  GameTimer.cpp
-  GeometryGenerator.cpp
-  MathHelper.cpp
-  CrateApp.cpp
-  FrameResource.cpp
-  Generating Code...
-  Crate.vcxproj -> C:\Users\cgf17gij\Source\Repos\Assignment\COM428 Assignment\Crate\x64\Debug\Lab 6 - Textured crate.exe
+﻿  CrateApp.cpp
+  Crate.vcxproj -> C:\Users\cgf17gij\Desktop\Assignment-master\Assignment-master\Assignment\COM428 Assignment\Crate\x64\Debug\Lab 6 - Textured crate.exe

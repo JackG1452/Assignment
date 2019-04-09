@@ -455,13 +455,39 @@ void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
 	for (auto& e : mAllRitems)
 	{
-		if (e->ObjCBIndex == 0 || e->ObjCBIndex == 3 || e->ObjCBIndex == 6 ||
+		//Blue Face ObjCBIndex
+		/*if (e->ObjCBIndex == 0 || e->ObjCBIndex == 3 || e->ObjCBIndex == 6 ||
 			e->ObjCBIndex == 9 || e->ObjCBIndex == 12 || e->ObjCBIndex == 15 ||
-			e->ObjCBIndex == 18 || e->ObjCBIndex == 21 || e->ObjCBIndex == 24)
+			e->ObjCBIndex == 18 || e->ObjCBIndex == 21 || e->ObjCBIndex == 24)*/
+
+		//Red Face ObjCBIndex
+		/*if (e->ObjCBIndex == 0 || e->ObjCBIndex == 3 || e->ObjCBIndex == 6 ||
+			e->ObjCBIndex == 1 || e->ObjCBIndex == 4 || e->ObjCBIndex == 7 ||
+			e->ObjCBIndex == 2 || e->ObjCBIndex == 5 || e->ObjCBIndex == 8)*/
+
+		//Orange Face ObjCBIndex
+		/*if (e->ObjCBIndex == 18 || e->ObjCBIndex == 21 || e->ObjCBIndex == 24 ||
+			e->ObjCBIndex == 19 || e->ObjCBIndex == 22 || e->ObjCBIndex == 25 ||
+			e->ObjCBIndex == 20 || e->ObjCBIndex == 23 || e->ObjCBIndex == 26)*/
+
+		//Green Face ObjCBIndex
+		/*if (e->ObjCBIndex == 20 || e->ObjCBIndex == 23 || e->ObjCBIndex == 26 ||
+			e->ObjCBIndex == 11 || e->ObjCBIndex == 14 || e->ObjCBIndex == 17 ||
+			e->ObjCBIndex == 2 || e->ObjCBIndex == 5 || e->ObjCBIndex == 8)*/
+
+		//White Face ObjCBIndex
+		/*if (e->ObjCBIndex == 6 || e->ObjCBIndex == 15 || e->ObjCBIndex == 24 ||
+			e->ObjCBIndex == 7 || e->ObjCBIndex == 16 || e->ObjCBIndex == 25 ||
+			e->ObjCBIndex == 8 || e->ObjCBIndex == 17 || e->ObjCBIndex == 26)*/
+
+		//Yellow Face ObjCBIndex
+		/*if (e->ObjCBIndex == 2 || e->ObjCBIndex == 1 || e->ObjCBIndex == 0 ||
+			e->ObjCBIndex == 9 || e->ObjCBIndex == 10 || e->ObjCBIndex == 11 ||
+			e->ObjCBIndex == 18 || e->ObjCBIndex == 19 || e->ObjCBIndex == 20)*/
 		{
 			XMMATRIX world = XMLoadFloat4x4(&e->World);
 			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
-			XMMATRIX rot = XMMatrixRotationZ(rotation);
+			XMMATRIX rot = XMMatrixRotationX(rotation);
 			world = rot * world;
 
 			ObjectConstants objConstants;
@@ -943,4 +969,5 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CrateApp::GetStaticSamplers()
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
 }
+
 
