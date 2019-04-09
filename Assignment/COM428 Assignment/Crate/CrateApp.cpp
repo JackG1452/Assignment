@@ -122,7 +122,7 @@ private:
 
 	bool mIsWireframe = false;
 	bool RotateCube = false;
-	int cullingMode = 0;
+	int cullingMode = -1;
 
 	XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
@@ -249,32 +249,33 @@ void CrateApp::Draw(const GameTimer& gt)
 
     // A command list can be reset after it has been added to the command queue via ExecuteCommandList.
     // Reusing the command list reuses memory.
-	if (mIsWireframe)
+
+	if (cullingMode == -1)
 	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque_wireframe"].Get()));
+		if (mIsWireframe)
+		{
+			ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque_wireframe"].Get()));
+		}
+		else
+		{
+			ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
+		}
 	}
 	else
 	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
+		if (cullingMode == 0)
+		{
+			ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["none"].Get()));
+		}
+		else if (cullingMode == 1)
+		{
+			ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["front"].Get()));
+		}
+		else if (cullingMode == 2)
+		{
+			ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["back"].Get()));
+		}
 	}
-
-
-	/*if (cullingMode == 0)
-	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["none"].Get()));
-	}
-	else if (cullingMode == 1)
-	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["front"].Get()));
-	}
-	else if (cullingMode == 2)
-	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["back"].Get()));
-	}
-	else
-	{
-		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["none"].Get()));
-	}*/
 	
     //ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mOpaquePSO.Get()));
 
@@ -395,10 +396,13 @@ void CrateApp::OnKeyboardInput(const GameTimer& gt)
 	//						 0x53 is S to change to solid
 	if (GetAsyncKeyState('W') & 0x8000)
 	{
+		cullingMode = -1;
 		mIsWireframe = true;
+	
 	}
 	if (GetAsyncKeyState('S') & 0x8000)
 	{
+		cullingMode = -1;
 		mIsWireframe = false;
 	}
 
@@ -412,15 +416,15 @@ void CrateApp::OnKeyboardInput(const GameTimer& gt)
 	//Change Culling Mode State 0x4E = N = None Culling
 	//							0x46 = F = Front Culling
 	//							0x42 = B = Back Culling
-	if (GetAsyncKeyState('n') & 0x8000)
+	if (GetAsyncKeyState('N') & 0x8000)
 	{
 		cullingMode = 0;
 	}
-	if (GetAsyncKeyState('f') & 0x8000)
+	if (GetAsyncKeyState('F') & 0x8000)
 	{
 		cullingMode = 1;
 	}
-	if (GetAsyncKeyState('b') & 0x8000)
+	if (GetAsyncKeyState('B') & 0x8000)
 	{
 		cullingMode = 2;
 	}
@@ -484,10 +488,12 @@ void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 		/*if (e->ObjCBIndex == 2 || e->ObjCBIndex == 1 || e->ObjCBIndex == 0 ||
 			e->ObjCBIndex == 9 || e->ObjCBIndex == 10 || e->ObjCBIndex == 11 ||
 			e->ObjCBIndex == 18 || e->ObjCBIndex == 19 || e->ObjCBIndex == 20)*/
+
+		//Different If's depending on which rotation axis choose
 		{
 			XMMATRIX world = XMLoadFloat4x4(&e->World);
 			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
-			XMMATRIX rot = XMMatrixRotationX(rotation);
+			XMMATRIX rot = XMMatrixRotationY(rotation);
 			world = rot * world;
 
 			ObjectConstants objConstants;
@@ -791,7 +797,6 @@ void CrateApp::BuildPSOs()
 	//
 	// PSO for opaque wireframe objects.
 	//
-
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframePsoDesc = opaquePsoDesc;
 	opaqueWireframePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaqueWireframePsoDesc, IID_PPV_ARGS(&mPSOs["opaque_wireframe"])));
@@ -799,6 +804,7 @@ void CrateApp::BuildPSOs()
 	//
 	// PSO for Culling Modes
 	//
+
 	//Culling None
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC noneCullingPsoDesc = opaquePsoDesc;
 	noneCullingPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
