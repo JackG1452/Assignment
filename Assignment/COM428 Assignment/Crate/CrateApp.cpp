@@ -577,12 +577,32 @@ void CrateApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+
+	//DirectionLight Angled at Red Face & Blue Face
 	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+	mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
+
+	//DirectionLight Angled at Orange Face & Blue Face
 	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+	mMainPassCB.Lights[1].Strength = { 1.0f, 1.0f, 1.0f };
+
+	//DirectionLight Angled at Green Face
 	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+	mMainPassCB.Lights[2].Strength = { 1.0f, 1.0f, 1.0f };
+	
+	//PointLight
+	mMainPassCB.Lights[3].FalloffStart = 1.0f;
+	mMainPassCB.Lights[3].FalloffEnd = 10.0f;
+	mMainPassCB.Lights[3].Position = { -5.0f, 50.0f, 10.0f };
+	mMainPassCB.Lights[3].Strength = { 50.0f, 50.0f, 50.0f };
+
+	//SpotLight
+	mMainPassCB.Lights[4].Direction = { 0.0f, -1.0, 0.0f };
+	mMainPassCB.Lights[4].FalloffStart =  1.0f ;
+	mMainPassCB.Lights[4].FalloffEnd = 10.0f ;
+	mMainPassCB.Lights[4].Position = { 1.0f, 10.0f, 1.0f };
+	mMainPassCB.Lights[4].Strength = { 15.5f, 15.5f, 15.5f };
+	mMainPassCB.Lights[4].SpotPower = 164.0f ;
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -838,7 +858,7 @@ void CrateApp::BuildMaterials()
 	woodCrate->MatCBIndex = 0;
 	woodCrate->DiffuseSrvHeapIndex = 0;
 	woodCrate->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	woodCrate->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+	woodCrate->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
 	woodCrate->Roughness = 0.2f;
 
 	mMaterials["woodCrate"] = std::move(woodCrate);
