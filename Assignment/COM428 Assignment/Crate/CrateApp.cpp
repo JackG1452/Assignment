@@ -28,6 +28,8 @@ struct RenderItem
     // and scale of the object in the world.
     XMFLOAT4X4 World = MathHelper::Identity4x4();
 
+	XMFLOAT4X4 ModifiedWorld = MathHelper::Identity4x4();
+
 	XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 
 	// Dirty flag indicating the object data has changed and we need to update the constant buffer.
@@ -88,6 +90,7 @@ private:
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
+
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
 private:
@@ -123,6 +126,7 @@ private:
 	bool mIsWireframe = false;
 	bool RotateCube = false;
 	int cullingMode = -1;
+	bool resetCube = false;
 
 	XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
@@ -133,6 +137,10 @@ private:
 	float mRadius = 12.0f;
 
 	float rotation = 0.0f;
+
+	float rotateSpeed = 50.0f;
+
+	int rotateAxis = 0;
 
     POINT mLastMousePos;
 };
@@ -216,6 +224,17 @@ void CrateApp::OnResize()
 
 void CrateApp::Update(const GameTimer& gt)
 {
+	if (resetCube == true)
+	{
+		resetCube = false;
+		mOpaqueRitems.clear();
+		BuildRenderItems();
+		mIsWireframe = false;
+		cullingMode = 0;
+		mTheta = 1.3f*XM_PI;
+		mPhi = 0.35f*XM_PI;
+		mRadius = 12.0f;
+	}
     OnKeyboardInput(gt);
 	UpdateCamera(gt);
 
@@ -373,6 +392,47 @@ void CrateApp::OnMouseMove(WPARAM btnState, int x, int y)
 }
 void CrateApp::OnKeyboardInput(const GameTimer& gt)
 {
+	const float dt = gt.DeltaTime();
+
+	if (GetAsyncKeyState(VK_LEFT) & 0x8000)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dx = XMConvertToRadians(100.0f*static_cast<float>(dt));
+		// Update angles based on input to orbit camera around box.
+		mTheta += dx;
+	}
+
+	if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dx = XMConvertToRadians(100.0f*static_cast<float>(-dt));
+		// Update angles based on input to orbit camera around box.
+		mTheta += dx;
+	}
+
+	if (GetAsyncKeyState(VK_UP) & 0x8000)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dy = XMConvertToRadians(100.0f*static_cast<float>(dt));
+
+		// Update angles based on input to orbit camera around box.
+		mPhi += dy;
+
+		// Restrict the angle mPhi.
+		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+	}
+
+	if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dy = XMConvertToRadians(100.0f*static_cast<float>(-dt));
+
+		// Update angles based on input to orbit camera around box.
+		mPhi += dy;
+
+		// Restrict the angle mPhi.
+		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+	}
 
 	//Predefined Camera State 1- Front
 	if (GetAsyncKeyState('1') & 0x8000)
@@ -407,10 +467,27 @@ void CrateApp::OnKeyboardInput(const GameTimer& gt)
 	}
 
 	//Dummy Code ATM to see if pressing R rotates specified objects in Constant Buffer
-	if (/*RotateCube == false && */GetAsyncKeyState('R') & 1)
+	if (GetAsyncKeyState('R') & 0x8000)
 	{
 		RotateCube = true;
-		rotation += XMConvertToRadians(-90);
+		//rotation += XMConvertToRadians(dt * rotateSpeed);
+
+	}
+	if (GetAsyncKeyState('X') & 0x8000)
+	{
+		rotateAxis = 1;
+		rotation += XMConvertToRadians(dt * rotateSpeed);
+	}
+
+	if (GetAsyncKeyState('Y') & 0x8000)
+	{
+		rotateAxis = 2;
+		rotation += XMConvertToRadians(dt * rotateSpeed);
+	}
+	if (GetAsyncKeyState('Z') & 0x8000)
+	{
+		rotateAxis = 3;
+		rotation += XMConvertToRadians(dt * rotateSpeed);
 	}
 
 	//Change Culling Mode State 0x4E = N = None Culling
@@ -429,6 +506,11 @@ void CrateApp::OnKeyboardInput(const GameTimer& gt)
 		cullingMode = 2;
 	}
 
+	//Reset Cube
+	if (GetAsyncKeyState('I') & 0x8000)
+	{
+		resetCube = true;
+	}
 }
 
 void CrateApp::UpdateCamera(const GameTimer& gt)
@@ -443,7 +525,7 @@ void CrateApp::UpdateCamera(const GameTimer& gt)
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
 	XMVECTOR target = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
+	
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 	
@@ -456,6 +538,8 @@ void CrateApp::AnimateMaterials(const GameTimer& gt)
 
 void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 {
+	const float dt = gt.DeltaTime();
+
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
 	for (auto& e : mAllRitems)
 	{
@@ -490,19 +574,53 @@ void CrateApp::UpdateObjectCBs(const GameTimer& gt)
 			e->ObjCBIndex == 18 || e->ObjCBIndex == 19 || e->ObjCBIndex == 20)*/
 
 		//Different If's depending on which rotation axis choose
+		if(RotateCube==true)
 		{
-			XMMATRIX world = XMLoadFloat4x4(&e->World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
-			XMMATRIX rot = XMMatrixRotationY(rotation);
-			world = rot * world;
+			if (rotateAxis == 1)
+			{
+				XMMATRIX world = XMLoadFloat4x4(&e->World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
+				XMMATRIX rot = XMMatrixRotationX(rotation);
+				world = world * rot;
 
-			ObjectConstants objConstants;
-			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+				ObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
 
-			currObjectCB->CopyData(e->ObjCBIndex, objConstants);
+				currObjectCB->CopyData(e->ObjCBIndex, objConstants);
 
-			e->NumFramesDirty--;
+				e->NumFramesDirty--;
+			}
+			else if (rotateAxis == 2)
+			{
+				XMMATRIX world = XMLoadFloat4x4(&e->World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
+				XMMATRIX rot = XMMatrixRotationY(rotation);
+				world = world * rot;
+
+				ObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+
+				currObjectCB->CopyData(e->ObjCBIndex, objConstants);
+
+				e->NumFramesDirty--;
+			}
+			else if (rotateAxis == 3)
+			{
+				XMMATRIX world = XMLoadFloat4x4(&e->World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
+				XMMATRIX rot = XMMatrixRotationZ(rotation);
+				world = world * rot;
+
+				ObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+
+				currObjectCB->CopyData(e->ObjCBIndex, objConstants);
+
+				e->NumFramesDirty--;
+			}
 				
 		}
 		// Only update the cbuffer data if the constants have changed.  
@@ -895,6 +1013,7 @@ void CrateApp::BuildRenderItems()
 				boxRitem->BaseVertexLocation = boxRitem->Geo->DrawArgs["box"].BaseVertexLocation;
 
 				XMStoreFloat4x4(&boxRitem->World, XMMatrixTranslation(1.0f*i, 1.0f*j, 1.0f*k));
+				XMStoreFloat4x4(&boxRitem->ModifiedWorld, XMMatrixTranslation(1.0f*i, 1.0f*j, 1.0f*k));
 
 				mAllRitems.push_back(std::move(boxRitem));
 				ObjCBIndex++;
